@@ -43,4 +43,12 @@ export class GitClient {
   origin(): string {
     return this.run(["remote", "get-url", "origin"]);
   }
+
+  setLocalConfig(key: string, value: string): void {
+    this.run(["config", "--local", key, value]);
+  }
+
+  setOrigin(remote: string): void {
+    this.run(["remote", "set-url", "origin", remote]);
+  }
 }
