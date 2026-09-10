@@ -33,7 +33,7 @@ export function readProfiles(path: string): Map<string, Profile> {
       if (section === "email") current.email = value;
       if (section === "github_user") current.githubUser = value;
       if (section === "ssh_host_alias") current.sshHostAlias = value;
-      if (section.startsWith("wrong_") || section === "history_mismatch" || section === "unexpected_ssh_identity" || section === "direct_default_branch") {
+      if (section.startsWith("wrong_") || section === "history_mismatch" || section === "unexpected_ssh_identity" || section === "direct_default_branch" || section === "remote_authentication") {
         current.policies[section] = value as Policy;
       }
     }
@@ -56,6 +56,7 @@ export function writeProfiles(path: string, profiles: Map<string, Profile>): voi
     lines.push("    unexpected_ssh_identity: warn");
     lines.push("    history_mismatch: fail");
     lines.push("    direct_default_branch: warn");
+    lines.push("    remote_authentication: fail");
   }
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${lines.join("\n")}\n`, { mode: 0o600 });

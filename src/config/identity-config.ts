@@ -11,7 +11,7 @@ export function readIdentityConfig(path: string): IdentityConfig | null {
     "identity.name", "identity.email", "identity.github_user", "repository.owner",
     "repository.remote", "auth.method", "auth.ssh_host_alias", "policy.wrong_author",
     "policy.wrong_email", "policy.wrong_remote_owner", "policy.unexpected_ssh_identity",
-    "policy.history_mismatch", "policy.direct_default_branch",
+    "policy.history_mismatch", "policy.direct_default_branch", "policy.remote_authentication",
   ]);
   for (const [index, line] of lines.entries()) {
     if (!line.trim() || line.trim().startsWith("#")) continue;
@@ -50,6 +50,7 @@ export function readIdentityConfig(path: string): IdentityConfig | null {
     unexpected_ssh_identity: policy("policy.unexpected_ssh_identity", "warn"),
     history_mismatch: policy("policy.history_mismatch", "fail"),
     direct_default_branch: policy("policy.direct_default_branch", "warn"),
+    remote_authentication: policy("policy.remote_authentication", "fail"),
   } };
 }
 

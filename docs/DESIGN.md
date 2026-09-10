@@ -29,6 +29,8 @@ checks can be tested without spawning the CLI.
 - `check-history` inspects commits after the merge-base with the detected default branch.
 - `install-hooks` installs pre-commit and pre-push shims and preserves existing hooks.
 - The push phase detects the default branch and warns on a direct push to it by default.
+- The push phase verifies the actual remote authentication account against the profile's expected
+  GitHub user; authentication mismatch is blocking by default.
 
 ## Phase 2: reliable policy engine
 
@@ -70,3 +72,5 @@ checks can be tested without spawning the CLI.
 - No automatic force push, rebase, amend, or remote-history rewrite.
 - Existing hooks are backed up before installation.
 - Remote verification is opt-in because it performs network I/O.
+- A push authentication mismatch is a blocking finding by default; the guard must not bypass it
+  merely to publish its own changes.

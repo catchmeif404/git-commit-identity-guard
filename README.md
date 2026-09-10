@@ -56,7 +56,7 @@ The commit phase checks `user.name` and `user.email`. The push phase also checks
 
 `check-history` uses the detected default branch. Detection checks `origin/HEAD`, local remote metadata, then `main` and `master`.
 
-`verify-remote` performs an explicit authentication check. SSH remotes use `ssh -T`. HTTPS remotes use `GITHUB_TOKEN`, `GH_TOKEN`, or the Git credential helper and then verify the account through GitHub's `/user` API. The credential is used in memory only.
+`verify-remote` performs an explicit authentication check. SSH remotes use `ssh -T`. HTTPS remotes use `GITHUB_TOKEN`, `GH_TOKEN`, or the Git credential helper and then verify the account through GitHub's `/user` API. The credential is used in memory only. When the authenticated account differs from `github_user`, verification fails; configure the intended SSH alias or HTTPS credential before pushing.
 
 `fix` is a dry run. `fix --apply` changes only repository-local Git config and `origin`.
 
@@ -89,9 +89,12 @@ policy:
   unexpected_ssh_identity: warn
   history_mismatch: fail
   direct_default_branch: warn
+  remote_authentication: fail
 ```
 
-Supported levels are `fail`, `warn`, and `require-check`. Warnings do not block; other levels block.
+Supported levels are `fail`, `warn`, and `require-check`. The push phase verifies the actual
+GitHub authentication account against `github_user`; `remote_authentication` controls this
+finding. Warnings do not block; other levels block.
 
 ## JSON output
 

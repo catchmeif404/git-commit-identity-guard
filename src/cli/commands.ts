@@ -183,6 +183,10 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   const phaseFindings = new IdentityChecker(git).run(config, checkPhase);
   if (command === "check" && checkPhase === "push") {
     phaseFindings.push(checkBranch(git, config));
+    const remoteFinding = await verifyRemote(git.origin(), config.githubUser);
+    phaseFindings.push(config.policies.remote_authentication === "warn" && remoteFinding.level === "FAIL"
+      ? { ...remoteFinding, level: "WARN" }
+      : remoteFinding);
     phaseFindings.push(...checkHistory(git, config, git.defaultBranch()));
   }
   const code = printFindings(phaseFindings, json);

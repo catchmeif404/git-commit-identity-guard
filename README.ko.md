@@ -78,7 +78,7 @@ GH_TOKEN
 Git credential helper
 ```
 
-찾은 credential은 GitHub `/user` API로 확인하고, 설정된 expected GitHub user와 비교합니다. credential은 파일에 저장하지 않습니다.
+찾은 credential은 GitHub `/user` API로 확인하고, 설정된 expected GitHub user와 비교합니다. credential은 파일에 저장하지 않습니다. 실제 인증 계정이 `github_user`와 다르면 검증이 실패하므로, 의도한 계정의 SSH alias나 HTTPS credential을 설정한 뒤 push해야 합니다.
 
 ## 잘못된 설정 수정
 
@@ -154,6 +154,7 @@ policy:
   unexpected_ssh_identity: warn
   history_mismatch: fail
   direct_default_branch: warn
+  remote_authentication: fail
 ```
 
 지원하는 수준은 다음과 같습니다.
@@ -163,6 +164,9 @@ fail          차단
 warn          경고만 표시
 require-check 차단
 ```
+
+push 단계에서는 실제 GitHub 인증 계정과 `github_user`를 비교합니다. 인증 계정이 다르면
+기본적으로 차단됩니다.
 
 ## JSON 출력
 
