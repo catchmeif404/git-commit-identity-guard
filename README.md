@@ -34,6 +34,3 @@ from `GITHUB_TOKEN`, `GH_TOKEN`, or the Git credential helper without storing it
 it only changes repository-local config and origin. Profiles are read from
 `~/.config/gitguard/profiles.yml`. The tool never force-pushes or changes global Git configuration.
 `--json` emits a stable `{ result, findings }` object for CI and coding agents.
-
-For a fresh checkout, run `gitguard init` after setting the repository's expected local identity;
-the sample GitHub Action demonstrates this without committing a repository identity file.

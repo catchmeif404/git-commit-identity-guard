@@ -54,10 +54,9 @@ checks can be tested without spawning the CLI.
 - `fix` shows a dry run and applies only with `--apply`; it never changes global
   config, credentials, or already-pushed history.
 
-## Phase 4: CI and agent integration
+## Phase 4: agent integration
 
-- Provide a stable JSON output mode for CI and coding agents.
-- Add a GitHub Action that runs `gitguard check --phase push` on pull requests.
+- JSON output is available for CI and coding agents.
 - Add an optional agent-facing preflight command that returns machine-readable reasons before an AI
   agent commits or pushes.
 
