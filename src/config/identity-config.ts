@@ -6,11 +6,27 @@ export function readIdentityConfig(path: string): IdentityConfig | null {
   const lines = readFileSync(path, "utf8").split(/\r?\n/);
   const values: Record<string, string> = {};
   let section = "";
-  for (const line of lines) {
+  const sections = new Set(["version", "identity", "repository", "auth", "policy"]);
+  const keys = new Set([
+    "identity.name", "identity.email", "identity.github_user", "repository.owner",
+    "repository.remote", "auth.method", "auth.ssh_host_alias", "policy.wrong_author",
+    "policy.wrong_email", "policy.wrong_remote_owner", "policy.unexpected_ssh_identity",
+    "policy.history_mismatch",
+  ]);
+  for (const [index, line] of lines.entries()) {
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+    if (/^version:\s*1\s*$/.test(line)) continue;
     const sectionMatch = line.match(/^([a-zA-Z]+):\s*$/);
-    if (sectionMatch) { section = sectionMatch[1]; continue; }
+    if (sectionMatch) {
+      section = sectionMatch[1];
+      if (!sections.has(section)) throw new Error(`invalid section at ${path}:${index + 1}: ${section}`);
+      continue;
+    }
     const valueMatch = line.match(/^\s{2,}([a-zA-Z_]+):\s*["']?([^"']*)["']?\s*$/);
-    if (valueMatch) values[`${section}.${valueMatch[1]}`] = valueMatch[2].trim();
+    if (!valueMatch) throw new Error(`invalid config line at ${path}:${index + 1}`);
+    const key = `${section}.${valueMatch[1]}`;
+    if (!keys.has(key)) throw new Error(`unknown config key at ${path}:${index + 1}: ${key}`);
+    values[key] = valueMatch[2].trim();
   }
   const name = values["identity.name"];
   const email = values["identity.email"];
@@ -20,7 +36,13 @@ export function readIdentityConfig(path: string): IdentityConfig | null {
   if (!name || !email || !githubUser || !remote || !sshHostAlias) {
     throw new Error(`invalid identity config: ${path}`);
   }
-  const policy = (key: string, fallback: Policy): Policy => (values[key] as Policy | undefined) ?? fallback;
+  const policy = (key: string, fallback: Policy): Policy => {
+    const value = values[key] as Policy | undefined;
+    if (value && !["fail", "warn", "require-check"].includes(value)) {
+      throw new Error(`invalid policy at ${path}: ${key}=${value}`);
+    }
+    return value ?? fallback;
+  };
   return { name, email, githubUser, remote, sshHostAlias, policies: {
     wrong_author: policy("policy.wrong_author", "fail"),
     wrong_email: policy("policy.wrong_email", "fail"),

@@ -26,8 +26,13 @@ node dist/index.js verify-remote
 node dist/index.js fix
 node dist/index.js check --phase commit
 node dist/index.js check --phase push
+node dist/index.js check --phase push --json
 ```
 
 `verify-remote` performs an explicit SSH check. `fix` is a dry run unless `--apply` is supplied;
 it only changes repository-local config and origin. Profiles are read from
 `~/.config/gitguard/profiles.yml`. The tool never force-pushes or changes global Git configuration.
+`--json` emits a stable `{ result, findings }` object for CI and coding agents.
+
+For a fresh checkout, run `gitguard init` after setting the repository's expected local identity;
+the sample GitHub Action demonstrates this without committing a repository identity file.

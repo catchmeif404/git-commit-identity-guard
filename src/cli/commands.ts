@@ -14,6 +14,7 @@ import type { IdentityConfig } from "../types.js";
 
 export async function runCli(args: string[], cliPath: string): Promise<void> {
   const command = args[0] ?? "status";
+  const json = args.includes("--json");
   const requestedPhase = args.includes("--phase") ? args[args.indexOf("--phase") + 1] : "all";
   if (command === "check" && requestedPhase !== "commit" && requestedPhase !== "push") {
     throw new Error("check requires --phase commit or --phase push");
@@ -90,21 +91,23 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   const config = readIdentityConfig(configPath);
   if (!config) throw new Error(`no config found; run 'gitguard init' first (${configPath})`);
   if (command === "check-history") {
-    process.exitCode = printFindings(checkHistory(git, config));
+    process.exitCode = printFindings(checkHistory(git, config), json);
     return;
   }
 
   if (command === "doctor") {
     const findings = new IdentityChecker(git).run(config, "all");
-    const code = printFindings(findings);
-    console.log(`\nConfig: ${configPath}`);
-    console.log(`Remote policy: ${config.remote}`);
+    const code = printFindings(findings, json);
+    if (!json) {
+      console.log(`\nConfig: ${configPath}`);
+      console.log(`Remote policy: ${config.remote}`);
+    }
     process.exitCode = code;
     return;
   }
 
   if (command === "verify-remote") {
-    process.exitCode = printFindings([verifyRemote(git.origin())]);
+    process.exitCode = printFindings([verifyRemote(git.origin())], json);
     return;
   }
 
@@ -131,8 +134,12 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   if (command === "check" && checkPhase === "push") {
     phaseFindings.push(...checkHistory(git, config));
   }
-  const code = printFindings(phaseFindings);
-  if (command === "status") printResult(code);
-  else if (command === "check") process.exitCode = code;
-  else throw new Error(`unknown command: ${command}`);
+  const code = printFindings(phaseFindings, json);
+  if (command === "status") {
+    if (!json) printResult(code);
+  } else if (command === "check") {
+    process.exitCode = code;
+  } else {
+    throw new Error(`unknown command: ${command}`);
+  }
 }
