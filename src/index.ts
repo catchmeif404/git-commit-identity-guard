@@ -22,6 +22,7 @@ const phase = args.includes("--phase") ? args[args.indexOf("--phase") + 1] : "co
 const repoRoot = git(["rev-parse", "--show-toplevel"]);
 const gitDir = git(["rev-parse", "--git-dir"]);
 const configPath = join(repoRoot, gitDir, "gitidentity.yml");
+const cliPath = process.argv[1];
 
 function git(arguments_: string[]): string {
   try {
@@ -29,6 +30,14 @@ function git(arguments_: string[]): string {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     fail(`git command failed: ${message}`);
+  }
+}
+
+function gitOptional(arguments_: string[]): string {
+  try {
+    return execFileSync("git", arguments_, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  } catch {
+    return "";
   }
 }
 
@@ -92,8 +101,8 @@ function sshIdentity(alias: string): string | null {
 }
 
 function findings(config: IdentityConfig): Finding[] {
-  const actualName = git(["config", "--local", "--get", "user.name"]);
-  const actualEmail = git(["config", "--local", "--get", "user.email"]);
+  const actualName = gitOptional(["config", "--local", "--get", "user.name"]);
+  const actualEmail = gitOptional(["config", "--local", "--get", "user.email"]);
   const actualRemote = git(["remote", "get-url", "origin"]);
   const expectedRemote = parseRemote(config.remote);
   const actualRemoteParts = parseRemote(actualRemote);
@@ -154,7 +163,7 @@ function installHooks(): void {
     const backup = `${path}.gitguard-original`;
     if (existsSync(path) && !existsSync(backup)) copyFileSync(path, backup);
     const phase = hook === "pre-commit" ? "commit" : "push";
-    writeFileSync(path, `#!/bin/sh\nset -e\nif [ -x "${backup}" ]; then "${backup}" "$@"; fi\nnode "${join(repoRoot, "dist/index.js")}" check --phase ${phase}\n`, { mode: 0o755 });
+    writeFileSync(path, `#!/bin/sh\nset -e\nif [ -x "${backup}" ]; then "${backup}" "$@"; fi\nnode "${cliPath}" check --phase ${phase}\n`, { mode: 0o755 });
     console.log(`Installed ${hook}`);
   }
 }

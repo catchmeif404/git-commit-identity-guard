@@ -1,0 +1,6 @@
+# Build output and local dependencies
+dist/
+node_modules/
+
+# Local-only repository identity policy
+.git/gitidentity.yml
