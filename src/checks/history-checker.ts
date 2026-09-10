@@ -7,8 +7,9 @@ export function checkHistory(git: GitClient, config: IdentityConfig): Finding[] 
   if (!commits) return [];
   return commits.split("\n").map((line) => {
     const [sha, name, email] = line.split("\t");
-    return email === config.email && name === config.name
+    const matches = email === config.email && name === config.name;
+    return matches
       ? { level: "PASS", title: sha.slice(0, 8), detail: `${name} <${email}>` }
-      : { level: "FAIL", title: sha.slice(0, 8), detail: `${name} <${email}>` };
+      : { level: config.policies.history_mismatch === "warn" ? "WARN" : "FAIL", title: sha.slice(0, 8), detail: `${name} <${email}>` };
   });
 }

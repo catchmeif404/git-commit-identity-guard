@@ -11,6 +11,10 @@ import type { IdentityConfig } from "../types.js";
 
 export async function runCli(args: string[], cliPath: string): Promise<void> {
   const command = args[0] ?? "status";
+  const requestedPhase = args.includes("--phase") ? args[args.indexOf("--phase") + 1] : "all";
+  if (command === "check" && requestedPhase !== "commit" && requestedPhase !== "push") {
+    throw new Error("check requires --phase commit or --phase push");
+  }
   const git = new GitClient();
   const repoRoot = git.repositoryRoot();
   const configPath = join(repoRoot, git.gitDirectory(), "gitidentity.yml");
@@ -55,7 +59,16 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
     return;
   }
 
-  const code = printFindings(new IdentityChecker(git).run(config));
+  if (command === "doctor") {
+    const findings = new IdentityChecker(git).run(config, "all");
+    const code = printFindings(findings);
+    console.log(`\nConfig: ${configPath}`);
+    console.log(`Remote policy: ${config.remote}`);
+    process.exitCode = code;
+    return;
+  }
+
+  const code = printFindings(new IdentityChecker(git).run(config, command === "check" ? requestedPhase as "commit" | "push" : "all"));
   if (command === "status") printResult(code);
   else if (command === "check") process.exitCode = code;
   else throw new Error(`unknown command: ${command}`);

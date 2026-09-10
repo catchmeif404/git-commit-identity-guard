@@ -32,14 +32,16 @@ checks can be tested without spawning the CLI.
 ## Phase 2: reliable policy engine
 
 1. Parse command options into a typed `CliOptions` object. Unknown options must return exit code 2.
-2. Make `--phase commit` and `--phase push` select different check sets.
+2. Make `--phase commit` and `--phase push` select different check sets. (Implemented in the
+   current MVP; the parser remains intentionally small until more options are added.)
    - commit: local author and repository config
    - push: remote owner, SSH alias, history, and branch target
 3. Apply the policy values in `.gitidentity.yml` to convert findings into PASS/WARN/FAIL.
+   (Implemented for identity, remote, SSH, and history findings.)
 4. Replace the hand-written YAML subset parser with a strict, dependency-light parser or a clearly
    documented supported subset with validation and line-numbered errors.
 5. Add a `doctor` command that explains missing config, global/local overrides, missing SSH aliases,
-   and unsupported remote formats.
+   and unsupported remote formats. (Initial diagnostic output is implemented.)
 
 ## Phase 3: profiles and remote verification
 

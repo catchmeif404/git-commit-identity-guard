@@ -17,7 +17,14 @@ node dist/index.js install-hooks
 ```
 
 The hooks block mismatched commit authors and remote owners. Existing hooks are preserved as
-`.gitguard-original`. `check-history` checks commits after the merge-base with `main`.
+`.gitguard-original`. Use `check --phase commit` for author checks and `check --phase push` for
+author, remote, and SSH checks. `check-history` checks commits after the merge-base with `main`.
+
+```bash
+node dist/index.js doctor
+node dist/index.js check --phase commit
+node dist/index.js check --phase push
+```
 
 MVP limitations: SSH identity is inferred from `~/.ssh/config`; phase-specific policies, remote
 verification, profile switching, and automatic repairs are not implemented yet. The tool never
