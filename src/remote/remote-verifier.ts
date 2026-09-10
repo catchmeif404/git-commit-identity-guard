@@ -5,7 +5,7 @@ import type { Finding } from "../types.js";
 export async function verifyRemote(remote: string, expectedUser: string): Promise<Finding> {
   const user = await detectRemoteUser(remote);
   return user
-    ? user === expectedUser
+    ? user.toLowerCase() === expectedUser.toLowerCase()
       ? { level: "PASS", title: "Remote authentication", detail: `authenticated as ${user}` }
       : { level: "FAIL", title: "Remote authentication mismatch", detail: `expected ${expectedUser}, authenticated as ${user}` }
     : { level: "WARN", title: "Remote authentication", detail: "could not identify a GitHub account" };

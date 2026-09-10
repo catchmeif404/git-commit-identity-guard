@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { createInterface } from "node:readline/promises";
+import { execFileSync, spawnSync } from "node:child_process";
 import { stdin as input, stdout as output } from "node:process";
 import { dirname, join } from "node:path";
 import { GitClient } from "../git/git-client.js";
@@ -105,9 +106,11 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
       }
       const defaults = detectedProfileDefaults(git);
       const detectedUser = await detectRemoteUser(git.origin());
+      const githubUser = args.includes("--github-user") ? undefined
+        : await selectGitHubAccount(detectedUser ?? defaults.githubUser);
       const profile = await profileFromArgs(name, args.slice(hasName ? 3 : 2), {
         ...defaults,
-        githubUser: detectedUser ?? defaults.githubUser,
+        githubUser: githubUser ?? detectedUser ?? defaults.githubUser,
       }, true);
       profiles.set(name, profile);
       writeProfiles(profilesPath, profiles);
@@ -229,6 +232,35 @@ async function profileNamePrompt(): Promise<string> {
     return name || "personal";
   } finally {
     prompts.close();
+  }
+}
+
+async function selectGitHubAccount(defaultUser: string | undefined): Promise<string | undefined> {
+  const accounts = ghAccounts();
+  if (accounts.length === 0 || !input.isTTY) return defaultUser;
+  const defaultIndex = Math.max(0, accounts.findIndex((account) => account === defaultUser));
+  const prompts = createInterface({ input, output });
+  try {
+    console.log("GitHub account:");
+    accounts.forEach((account, index) => console.log(`  ${index + 1}. ${account}${index === defaultIndex ? " (active)" : ""}`));
+    const answer = (await prompts.question(`Account number [${defaultIndex + 1}]: `)).trim();
+    const selected = answer ? accounts[Number(answer) - 1] : accounts[defaultIndex];
+    if (!selected) throw new Error("invalid GitHub account selection");
+    return selected;
+  } finally {
+    prompts.close();
+  }
+}
+
+function ghAccounts(): string[] {
+  try {
+    const result = spawnSync("gh", ["auth", "status", "--hostname", "github.com"], {
+      encoding: "utf8",
+    });
+    const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+    return [...output.matchAll(/account\s+([^\s(]+)/gi)].map((match) => match[1]);
+  } catch {
+    return [];
   }
 }
 
