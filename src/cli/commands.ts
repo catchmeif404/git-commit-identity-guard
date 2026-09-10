@@ -1,5 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
+import { createInterface } from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 import { dirname, join } from "node:path";
 import { GitClient } from "../git/git-client.js";
 import { parseRemote } from "../git/remote-parser.js";
@@ -8,7 +10,7 @@ import { IdentityChecker } from "../checks/identity-checker.js";
 import { checkHistory } from "../checks/history-checker.js";
 import { checkBranch } from "../checks/branch-checker.js";
 import { installHooks } from "../hooks/hook-installer.js";
-import { readProfiles } from "../config/profile-store.js";
+import { readProfiles, writeProfiles, type Profile } from "../config/profile-store.js";
 import { verifyRemote } from "../remote/remote-verifier.js";
 import { printFindings, printResult } from "../output/reporter.js";
 import type { IdentityConfig } from "../types.js";
@@ -65,6 +67,41 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   if (command === "profile") {
     const profiles = readProfiles(profilesPath);
     const action = args[1];
+    if (action === "init") {
+      const name = args[2] ?? "personal";
+      if (profiles.has(name) && !args.includes("--force")) {
+        throw new Error(`profile already exists: ${name}; use --force to replace it`);
+      }
+      const remote = git.origin();
+      const parsed = parseRemote(remote);
+      const identityName = git.localConfig("user.name");
+      const identityEmail = git.localConfig("user.email");
+      if (!parsed.owner || !identityName || !identityEmail) {
+        throw new Error("origin, local user.name, and local user.email are required");
+      }
+      profiles.set(name, {
+        name: identityName,
+        email: identityEmail,
+        githubUser: parsed.owner,
+        sshHostAlias: parsed.host,
+        policies: {},
+      });
+      writeProfiles(profilesPath, profiles);
+      console.log(`Saved profile '${name}' to ${profilesPath}`);
+      return;
+    }
+    if (action === "add") {
+      const name = args[2];
+      if (!name) throw new Error("profile add requires a name");
+      if (profiles.has(name) && !args.includes("--force")) {
+        throw new Error(`profile already exists: ${name}; use --force to replace it`);
+      }
+      const profile = await profileFromArgs(name, args.slice(3));
+      profiles.set(name, profile);
+      writeProfiles(profilesPath, profiles);
+      console.log(`Saved profile '${name}' to ${profilesPath}`);
+      return;
+    }
     if (action === "list") {
       for (const name of profiles.keys()) console.log(name);
       return;
@@ -148,5 +185,34 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
     process.exitCode = code;
   } else {
     throw new Error(`unknown command: ${command}`);
+  }
+}
+
+async function profileFromArgs(name: string, args: string[]): Promise<Profile> {
+  const value = (option: string): string | undefined => {
+    const index = args.indexOf(option);
+    return index >= 0 ? args[index + 1] : undefined;
+  };
+  const values = {
+    name: value("--name"),
+    email: value("--email"),
+    githubUser: value("--github-user"),
+    sshHostAlias: value("--ssh-host-alias"),
+  };
+  if (Object.values(values).some((item) => !item) && !input.isTTY) {
+    throw new Error("profile add needs --name, --email, --github-user, and --ssh-host-alias outside an interactive terminal");
+  }
+  const prompts = input.isTTY ? createInterface({ input, output }) : null;
+  try {
+    const ask = async (label: string, existing: string | undefined): Promise<string> => existing ?? (await prompts!.question(`${label}: `)).trim();
+    return {
+      name: await ask("Name", values.name),
+      email: await ask("Email", values.email),
+      githubUser: await ask("GitHub user", values.githubUser),
+      sshHostAlias: await ask("SSH host alias", values.sshHostAlias),
+      policies: {},
+    };
+  } finally {
+    prompts?.close();
   }
 }

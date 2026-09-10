@@ -49,6 +49,8 @@ checks can be tested without spawning the CLI.
 - Store machine-local profiles in `~/.config/gitguard/profiles.yml`. (`profile list/use` implemented.)
 - `profile list` and `profile use <name>` only change repository-local Git config. (`use` also
   switches the origin to the profile's SSH alias.)
+- `profile init [name]` creates a profile from the current repository identity; `profile add` accepts
+  flags or prompts interactively and writes only to the machine-local profiles file.
 - `verify-remote` performs an explicit SSH or GitHub API network check and labels its result
   VERIFIED when the expected account matches; normal checks
   remain local and use INFERRED for SSH identity.

@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import type { Policy } from "../types.js";
 
 export type Profile = {
@@ -39,4 +40,23 @@ export function readProfiles(path: string): Map<string, Profile> {
   }
   if (current && name) profiles.set(name, current);
   return profiles;
+}
+
+export function writeProfiles(path: string, profiles: Map<string, Profile>): void {
+  const lines = ["version: 1", "", "profiles:"];
+  for (const [profileName, profile] of profiles) {
+    lines.push(`  ${profileName}:`);
+    lines.push(`    name: "${profile.name}"`);
+    lines.push(`    email: "${profile.email}"`);
+    lines.push(`    github_user: "${profile.githubUser}"`);
+    lines.push(`    ssh_host_alias: "${profile.sshHostAlias}"`);
+    lines.push("    wrong_author: fail");
+    lines.push("    wrong_email: fail");
+    lines.push("    wrong_remote_owner: fail");
+    lines.push("    unexpected_ssh_identity: warn");
+    lines.push("    history_mismatch: fail");
+    lines.push("    direct_default_branch: warn");
+  }
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${lines.join("\n")}\n`, { mode: 0o600 });
 }

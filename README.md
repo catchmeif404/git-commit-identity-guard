@@ -24,6 +24,9 @@ author, remote, and SSH checks. `check-history` checks commits after the merge-b
 node dist/index.js doctor
 node dist/index.js verify-remote --json
 node dist/index.js fix
+node dist/index.js profile init personal
+node dist/index.js profile add company --name "Company" --email "dev@company.example" --github-user company-user --ssh-host-alias github-company
+node dist/index.js profile use personal
 node dist/index.js check --phase commit
 node dist/index.js check --phase push
 node dist/index.js check --phase push --json
