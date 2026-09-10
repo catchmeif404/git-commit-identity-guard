@@ -51,6 +51,7 @@ checks can be tested without spawning the CLI.
   switches the origin to the profile's SSH alias.)
 - `profile init [name]` creates a profile from the current repository identity; `profile add` accepts
   flags or prompts interactively and writes only to the machine-local profiles file.
+- `profile show` prints one profile and `profile remove <name> --force` removes one explicitly.
 - `verify-remote` performs an explicit SSH or GitHub API network check and labels its result
   VERIFIED when the expected account matches; normal checks
   remain local and use INFERRED for SSH identity.

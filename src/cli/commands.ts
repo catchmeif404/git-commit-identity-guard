@@ -60,7 +60,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   }
 
   if (command === "install-hooks") {
-    installHooks(repoRoot, cliPath);
+    installHooks(git.hooksDirectory(), cliPath);
     return;
   }
 
@@ -106,6 +106,22 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
       for (const name of profiles.keys()) console.log(name);
       return;
     }
+    if (action === "show") {
+      const name = args[2];
+      const profile = name ? profiles.get(name) : undefined;
+      if (!profile) throw new Error(`profile not found: ${name ?? "missing"}`);
+      console.log(JSON.stringify({ profileName: name, ...profile, policies: profile.policies }, null, 2));
+      return;
+    }
+    if (action === "remove") {
+      const name = args[2];
+      if (!name || !profiles.has(name)) throw new Error(`profile not found: ${name ?? "missing"}`);
+      if (!args.includes("--force")) throw new Error("profile remove requires --force");
+      profiles.delete(name);
+      writeProfiles(profilesPath, profiles);
+      console.log(`Removed profile '${name}'`);
+      return;
+    }
     if (action === "use") {
       const name = args[2];
       const profile = name ? profiles.get(name) : undefined;
@@ -127,7 +143,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
       console.log(`Applied profile '${name}' to local Git config and origin`);
       return;
     }
-    throw new Error("profile requires 'list' or 'use <name>'");
+    throw new Error("profile requires list, show <name>, add <name>, use <name>, or remove <name> --force");
   }
 
   const config = readIdentityConfig(configPath);

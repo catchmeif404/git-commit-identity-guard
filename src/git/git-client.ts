@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 
 export class GitClient {
   constructor(private readonly cwd: string = process.cwd()) {}
@@ -54,6 +55,10 @@ export class GitClient {
 
   currentBranch(): string {
     return this.optional(["branch", "--show-current"]);
+  }
+
+  hooksDirectory(): string {
+    return resolve(this.cwd, this.run(["rev-parse", "--git-path", "hooks"]));
   }
 
   defaultBranch(): string {
