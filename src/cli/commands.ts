@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { GitClient } from "../git/git-client.js";
@@ -6,6 +6,7 @@ import { parseRemote } from "../git/remote-parser.js";
 import { readIdentityConfig, writeIdentityConfig } from "../config/identity-config.js";
 import { IdentityChecker } from "../checks/identity-checker.js";
 import { checkHistory } from "../checks/history-checker.js";
+import { checkBranch } from "../checks/branch-checker.js";
 import { installHooks } from "../hooks/hook-installer.js";
 import { readProfiles } from "../config/profile-store.js";
 import { verifyRemote } from "../remote/remote-verifier.js";
@@ -25,6 +26,9 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   const profilesPath = join(homedir(), ".config", "gitguard", "profiles.yml");
 
   if (command === "init") {
+    if (existsSync(configPath) && !args.includes("--force")) {
+      throw new Error(`config already exists; use 'init --force' to replace it (${configPath})`);
+    }
     const remote = git.origin();
     const parsed = parseRemote(remote);
     const name = git.localConfig("user.name");
@@ -44,6 +48,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
         wrong_remote_owner: "fail",
         unexpected_ssh_identity: "warn",
         history_mismatch: "fail",
+        direct_default_branch: "warn",
       },
     };
     mkdirSync(dirname(configPath), { recursive: true });
@@ -97,6 +102,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
 
   if (command === "doctor") {
     const findings = new IdentityChecker(git).run(config, "all");
+    findings.push(checkBranch(git, config));
     const code = printFindings(findings, json);
     if (!json) {
       console.log(`\nConfig: ${configPath}`);
@@ -132,6 +138,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   const checkPhase = command === "check" ? requestedPhase as "commit" | "push" : "all";
   const phaseFindings = new IdentityChecker(git).run(config, checkPhase);
   if (command === "check" && checkPhase === "push") {
+    phaseFindings.push(checkBranch(git, config));
     phaseFindings.push(...checkHistory(git, config, git.defaultBranch()));
   }
   const code = printFindings(phaseFindings, json);

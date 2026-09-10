@@ -52,6 +52,10 @@ export class GitClient {
     this.run(["remote", "set-url", "origin", remote]);
   }
 
+  currentBranch(): string {
+    return this.optional(["branch", "--show-current"]);
+  }
+
   defaultBranch(): string {
     const symbolic = this.optional(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]);
     if (symbolic.startsWith("origin/")) return symbolic.slice("origin/".length);

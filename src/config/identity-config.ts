@@ -11,7 +11,7 @@ export function readIdentityConfig(path: string): IdentityConfig | null {
     "identity.name", "identity.email", "identity.github_user", "repository.owner",
     "repository.remote", "auth.method", "auth.ssh_host_alias", "policy.wrong_author",
     "policy.wrong_email", "policy.wrong_remote_owner", "policy.unexpected_ssh_identity",
-    "policy.history_mismatch",
+    "policy.history_mismatch", "policy.direct_default_branch",
   ]);
   for (const [index, line] of lines.entries()) {
     if (!line.trim() || line.trim().startsWith("#")) continue;
@@ -49,10 +49,11 @@ export function readIdentityConfig(path: string): IdentityConfig | null {
     wrong_remote_owner: policy("policy.wrong_remote_owner", "fail"),
     unexpected_ssh_identity: policy("policy.unexpected_ssh_identity", "warn"),
     history_mismatch: policy("policy.history_mismatch", "fail"),
+    direct_default_branch: policy("policy.direct_default_branch", "warn"),
   } };
 }
 
 export function writeIdentityConfig(path: string, config: IdentityConfig): void {
-  const content = `version: 1\n\nidentity:\n  name: "${config.name}"\n  email: "${config.email}"\n  github_user: "${config.githubUser}"\n\nrepository:\n  owner: "${config.githubUser}"\n  remote: "${config.remote}"\n\nauth:\n  method: ssh\n  ssh_host_alias: "${config.sshHostAlias}"\n\npolicy:\n  wrong_author: fail\n  wrong_email: fail\n  wrong_remote_owner: fail\n  unexpected_ssh_identity: warn\n  history_mismatch: fail\n`;
+  const content = `version: 1\n\nidentity:\n  name: "${config.name}"\n  email: "${config.email}"\n  github_user: "${config.githubUser}"\n\nrepository:\n  owner: "${config.githubUser}"\n  remote: "${config.remote}"\n\nauth:\n  method: ssh\n  ssh_host_alias: "${config.sshHostAlias}"\n\npolicy:\n  wrong_author: fail\n  wrong_email: fail\n  wrong_remote_owner: fail\n  unexpected_ssh_identity: warn\n  history_mismatch: fail\n  direct_default_branch: warn\n`;
   writeFileSync(path, content, { mode: 0o600 });
 }

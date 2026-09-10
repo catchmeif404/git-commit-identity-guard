@@ -20,3 +20,5 @@ export type RemoteParts = {
   owner: string;
   repository: string;
 };
+
+export type CheckPhase = "commit" | "push" | "all";

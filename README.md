@@ -29,6 +29,9 @@ node dist/index.js check --phase push
 node dist/index.js check --phase push --json
 ```
 
+`check --phase push` detects the repository default branch and warns when you are about to push
+directly to it. Existing identity files are protected; use `init --force` to regenerate one.
+
 `verify-remote` performs an explicit SSH or GitHub API check. For HTTPS remotes it reads a token
 from `GITHUB_TOKEN`, `GH_TOKEN`, or the Git credential helper without storing it. `fix` is a dry run unless `--apply` is supplied;
 it only changes repository-local config and origin. Profiles are read from

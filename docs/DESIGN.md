@@ -28,6 +28,7 @@ checks can be tested without spawning the CLI.
 - `check` returns exit code 1 for author/email/remote-owner violations.
 - `check-history` inspects commits after the merge-base with the detected default branch.
 - `install-hooks` installs pre-commit and pre-push shims and preserves existing hooks.
+- The push phase detects the default branch and warns on a direct push to it by default.
 
 ## Phase 2: reliable policy engine
 
