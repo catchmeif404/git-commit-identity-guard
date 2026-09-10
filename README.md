@@ -70,6 +70,7 @@ gitguard profile add company
 gitguard profile add company --name "Company" --email "developer@company.example" --github-user company-user --ssh-host-alias github-company
 gitguard profile list
 gitguard profile show personal
+gitguard profile
 gitguard profile use personal
 gitguard profile remove company --force
 ```

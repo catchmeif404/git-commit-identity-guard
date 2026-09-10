@@ -27,6 +27,31 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   const configPath = join(repoRoot, git.gitDirectory(), "gitidentity.yml");
   const profilesPath = join(homedir(), ".config", "gitguard", "profiles.yml");
 
+  if (command === "setup") {
+    const profiles = readProfiles(profilesPath);
+    if (profiles.size === 0) {
+      const remote = git.origin();
+      const parsed = parseRemote(remote);
+      const identityName = git.localConfig("user.name");
+      const identityEmail = git.localConfig("user.email");
+      if (!parsed.owner || !identityName || !identityEmail) {
+        throw new Error("origin, local user.name, and local user.email are required");
+      }
+      profiles.set("personal", {
+        name: identityName,
+        email: identityEmail,
+        githubUser: parsed.owner,
+        sshHostAlias: parsed.host,
+        policies: {},
+      });
+      writeProfiles(profilesPath, profiles);
+      console.log(`Created the 'personal' profile from the current repository`);
+    }
+    const profileName = args[1] ?? await selectProfile(profiles);
+    await applyProfile(profileName, profiles, git, configPath);
+    return;
+  }
+
   if (command === "init") {
     if (existsSync(configPath) && !args.includes("--force")) {
       throw new Error(`config already exists; use 'init --force' to replace it (${configPath})`);
@@ -67,6 +92,11 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   if (command === "profile") {
     const profiles = readProfiles(profilesPath);
     const action = args[1];
+    if (!action) {
+      if (profiles.size === 0) throw new Error("no profiles found; run 'gitguard setup' first");
+      await applyProfile(await selectProfile(profiles), profiles, git, configPath);
+      return;
+    }
     if (action === "init") {
       const name = args[2] ?? "personal";
       if (profiles.has(name) && !args.includes("--force")) {
@@ -123,24 +153,8 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
       return;
     }
     if (action === "use") {
-      const name = args[2];
-      const profile = name ? profiles.get(name) : undefined;
-      if (!profile) throw new Error(`profile not found: ${name ?? "missing"}`);
-      const remote = git.origin();
-      const parsed = parseRemote(remote);
-      const nextConfig: IdentityConfig = {
-        ...profile,
-        remote,
-        policies: { ...profile.policies },
-      };
-      git.setLocalConfig("user.name", profile.name);
-      git.setLocalConfig("user.email", profile.email);
-      const profileRemote = parsed.owner && profile.sshHostAlias
-        ? `git@${profile.sshHostAlias}:${parsed.owner}/${parsed.repository}.git` : remote;
-      nextConfig.remote = profileRemote;
-      git.setOrigin(profileRemote);
-      writeIdentityConfig(configPath, nextConfig);
-      console.log(`Applied profile '${name}' to local Git config and origin`);
+      const name = args[2] ?? await selectProfile(profiles);
+      await applyProfile(name, profiles, git, configPath);
       return;
     }
     throw new Error("profile requires list, show <name>, add <name>, use <name>, or remove <name> --force");
@@ -202,6 +216,40 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   } else {
     throw new Error(`unknown command: ${command}`);
   }
+}
+
+async function selectProfile(profiles: Map<string, Profile>): Promise<string> {
+  const names = [...profiles.keys()];
+  if (names.length === 1) return names[0];
+  if (!input.isTTY) throw new Error("multiple profiles found; specify one by name");
+  const prompts = createInterface({ input, output });
+  try {
+    console.log("Select identity profile:");
+    names.forEach((name, index) => console.log(`  ${index + 1}. ${name}`));
+    const answer = Number((await prompts.question("Profile number: ")).trim());
+    const selected = names[answer - 1];
+    if (!selected) throw new Error("invalid profile selection");
+    return selected;
+  } finally {
+    prompts.close();
+  }
+}
+
+async function applyProfile(name: string, profiles: Map<string, Profile>, git: GitClient, configPath: string): Promise<void> {
+  const profile = profiles.get(name);
+  if (!profile) throw new Error(`profile not found: ${name}`);
+  const remote = git.origin();
+  const parsed = parseRemote(remote);
+  const nextConfig: IdentityConfig = { ...profile, remote, policies: { ...profile.policies } };
+  git.setLocalConfig("user.name", profile.name);
+  git.setLocalConfig("user.email", profile.email);
+  const profileRemote = parsed.owner && profile.sshHostAlias
+    ? `git@${profile.sshHostAlias}:${parsed.owner}/${parsed.repository}.git` : remote;
+  nextConfig.remote = profileRemote;
+  git.setOrigin(profileRemote);
+  writeIdentityConfig(configPath, nextConfig);
+  console.log(`Active profile: ${name}`);
+  console.log(`Commit as: ${profile.name} <${profile.email}>`);
 }
 
 async function profileFromArgs(name: string, args: string[]): Promise<Profile> {

@@ -135,6 +135,7 @@ gitguard profile add company \
 ```bash
 gitguard profile list
 gitguard profile show personal
+gitguard profile
 gitguard profile use personal
 gitguard profile remove company --force
 ```
