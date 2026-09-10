@@ -30,22 +30,9 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   if (command === "setup") {
     const profiles = readProfiles(profilesPath);
     if (profiles.size === 0) {
-      const remote = git.origin();
-      const parsed = parseRemote(remote);
-      const identityName = git.localConfig("user.name");
-      const identityEmail = git.localConfig("user.email");
-      if (!parsed.owner || !identityName || !identityEmail) {
-        throw new Error("origin, local user.name, and local user.email are required");
-      }
-      profiles.set("personal", {
-        name: identityName,
-        email: identityEmail,
-        githubUser: parsed.owner,
-        sshHostAlias: parsed.host,
-        policies: {},
-      });
+      profiles.set("personal", await profileFromArgs("personal", args.slice(1), detectedProfileDefaults(git), true));
       writeProfiles(profilesPath, profiles);
-      console.log(`Created the 'personal' profile from the current repository`);
+      console.log(`Created the 'personal' profile`);
     }
     const profileName = args[1] ?? await selectProfile(profiles);
     await applyProfile(profileName, profiles, git, configPath);
@@ -93,7 +80,10 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
     const profiles = readProfiles(profilesPath);
     const action = args[1];
     if (!action) {
-      if (profiles.size === 0) throw new Error("no profiles found; run 'gitguard setup' first");
+      if (profiles.size === 0) {
+        profiles.set("personal", await profileFromArgs("personal", [], detectedProfileDefaults(git), true));
+        writeProfiles(profilesPath, profiles);
+      }
       await applyProfile(await selectProfile(profiles), profiles, git, configPath);
       return;
     }
@@ -102,20 +92,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
       if (profiles.has(name) && !args.includes("--force")) {
         throw new Error(`profile already exists: ${name}; use --force to replace it`);
       }
-      const remote = git.origin();
-      const parsed = parseRemote(remote);
-      const identityName = git.localConfig("user.name");
-      const identityEmail = git.localConfig("user.email");
-      if (!parsed.owner || !identityName || !identityEmail) {
-        throw new Error("origin, local user.name, and local user.email are required");
-      }
-      profiles.set(name, {
-        name: identityName,
-        email: identityEmail,
-        githubUser: parsed.owner,
-        sshHostAlias: parsed.host,
-        policies: {},
-      });
+      profiles.set(name, await profileFromArgs(name, args.slice(3), detectedProfileDefaults(git), true));
       writeProfiles(profilesPath, profiles);
       console.log(`Saved profile '${name}' to ${profilesPath}`);
       return;
@@ -252,23 +229,38 @@ async function applyProfile(name: string, profiles: Map<string, Profile>, git: G
   console.log(`Commit as: ${profile.name} <${profile.email}>`);
 }
 
-async function profileFromArgs(name: string, args: string[]): Promise<Profile> {
+function detectedProfileDefaults(git: GitClient): Partial<Profile> {
+  const remote = git.origin();
+  const parsed = parseRemote(remote);
+  return {
+    name: git.localConfig("user.name"),
+    email: git.localConfig("user.email"),
+    githubUser: parsed.owner,
+    sshHostAlias: parsed.host,
+  };
+}
+
+async function profileFromArgs(name: string, args: string[], defaults: Partial<Profile> = {}, confirmDefaults = false): Promise<Profile> {
   const value = (option: string): string | undefined => {
     const index = args.indexOf(option);
     return index >= 0 ? args[index + 1] : undefined;
   };
   const values = {
-    name: value("--name"),
-    email: value("--email"),
-    githubUser: value("--github-user"),
-    sshHostAlias: value("--ssh-host-alias"),
+    name: value("--name") ?? defaults.name,
+    email: value("--email") ?? defaults.email,
+    githubUser: value("--github-user") ?? defaults.githubUser,
+    sshHostAlias: value("--ssh-host-alias") ?? defaults.sshHostAlias,
   };
   if (Object.values(values).some((item) => !item) && !input.isTTY) {
     throw new Error("profile add needs --name, --email, --github-user, and --ssh-host-alias outside an interactive terminal");
   }
   const prompts = input.isTTY ? createInterface({ input, output }) : null;
   try {
-    const ask = async (label: string, existing: string | undefined): Promise<string> => existing ?? (await prompts!.question(`${label}: `)).trim();
+    const ask = async (label: string, existing: string | undefined): Promise<string> => {
+      if (existing && !confirmDefaults) return existing;
+      const answer = (await prompts!.question(`${label}${existing ? ` [${existing}]` : ""}: `)).trim();
+      return answer || existing || (() => { throw new Error(`${label} is required`); })();
+    };
     return {
       name: await ask("Name", values.name),
       email: await ask("Email", values.email),

@@ -33,7 +33,7 @@ export function readProfiles(path: string): Map<string, Profile> {
       if (section === "email") current.email = value;
       if (section === "github_user") current.githubUser = value;
       if (section === "ssh_host_alias") current.sshHostAlias = value;
-      if (section.startsWith("wrong_") || section === "history_mismatch" || section === "unexpected_ssh_identity") {
+      if (section.startsWith("wrong_") || section === "history_mismatch" || section === "unexpected_ssh_identity" || section === "direct_default_branch") {
         current.policies[section] = value as Policy;
       }
     }
