@@ -22,10 +22,12 @@ author, remote, and SSH checks. `check-history` checks commits after the merge-b
 
 ```bash
 node dist/index.js doctor
+node dist/index.js verify-remote
+node dist/index.js fix
 node dist/index.js check --phase commit
 node dist/index.js check --phase push
 ```
 
-MVP limitations: SSH identity is inferred from `~/.ssh/config`; phase-specific policies, remote
-verification, profile switching, and automatic repairs are not implemented yet. The tool never
-force-pushes or changes global Git configuration.
+`verify-remote` performs an explicit SSH check. `fix` is a dry run unless `--apply` is supplied;
+it only changes repository-local config and origin. Profiles are read from
+`~/.config/gitguard/profiles.yml`. The tool never force-pushes or changes global Git configuration.

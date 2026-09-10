@@ -45,11 +45,12 @@ checks can be tested without spawning the CLI.
 
 ## Phase 3: profiles and remote verification
 
-- Store machine-local profiles in `~/.config/gitguard/profiles.yml`.
-- `profile list` and `profile use <name>` only change repository-local Git config.
+- Store machine-local profiles in `~/.config/gitguard/profiles.yml`. (`profile list/use` implemented.)
+- `profile list` and `profile use <name>` only change repository-local Git config. (`use` also
+  switches the origin to the profile's SSH alias.)
 - `verify-remote` performs an explicit network check and labels its result VERIFIED; normal checks
   remain local and use INFERRED for SSH identity.
-- `fix` may update local config or an SSH remote alias after showing a diff. It never changes global
+- `fix` shows a dry run and applies only with `--apply`; it never changes global
   config, credentials, or already-pushed history.
 
 ## Phase 4: CI and agent integration

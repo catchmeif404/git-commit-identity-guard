@@ -1,4 +1,5 @@
 import { mkdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { GitClient } from "../git/git-client.js";
 import { parseRemote } from "../git/remote-parser.js";
@@ -6,6 +7,8 @@ import { readIdentityConfig, writeIdentityConfig } from "../config/identity-conf
 import { IdentityChecker } from "../checks/identity-checker.js";
 import { checkHistory } from "../checks/history-checker.js";
 import { installHooks } from "../hooks/hook-installer.js";
+import { readProfiles } from "../config/profile-store.js";
+import { verifyRemote } from "../remote/remote-verifier.js";
 import { printFindings, printResult } from "../output/reporter.js";
 import type { IdentityConfig } from "../types.js";
 
@@ -18,6 +21,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   const git = new GitClient();
   const repoRoot = git.repositoryRoot();
   const configPath = join(repoRoot, git.gitDirectory(), "gitidentity.yml");
+  const profilesPath = join(homedir(), ".config", "gitguard", "profiles.yml");
 
   if (command === "init") {
     const remote = git.origin();
@@ -52,6 +56,37 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
     return;
   }
 
+  if (command === "profile") {
+    const profiles = readProfiles(profilesPath);
+    const action = args[1];
+    if (action === "list") {
+      for (const name of profiles.keys()) console.log(name);
+      return;
+    }
+    if (action === "use") {
+      const name = args[2];
+      const profile = name ? profiles.get(name) : undefined;
+      if (!profile) throw new Error(`profile not found: ${name ?? "missing"}`);
+      const remote = git.origin();
+      const parsed = parseRemote(remote);
+      const nextConfig: IdentityConfig = {
+        ...profile,
+        remote,
+        policies: { ...profile.policies },
+      };
+      git.setLocalConfig("user.name", profile.name);
+      git.setLocalConfig("user.email", profile.email);
+      const profileRemote = parsed.owner && profile.sshHostAlias
+        ? `git@${profile.sshHostAlias}:${parsed.owner}/${parsed.repository}.git` : remote;
+      nextConfig.remote = profileRemote;
+      git.setOrigin(profileRemote);
+      writeIdentityConfig(configPath, nextConfig);
+      console.log(`Applied profile '${name}' to local Git config and origin`);
+      return;
+    }
+    throw new Error("profile requires 'list' or 'use <name>'");
+  }
+
   const config = readIdentityConfig(configPath);
   if (!config) throw new Error(`no config found; run 'gitguard init' first (${configPath})`);
   if (command === "check-history") {
@@ -68,7 +103,35 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
     return;
   }
 
-  const code = printFindings(new IdentityChecker(git).run(config, command === "check" ? requestedPhase as "commit" | "push" : "all"));
+  if (command === "verify-remote") {
+    process.exitCode = printFindings([verifyRemote(git.origin())]);
+    return;
+  }
+
+  if (command === "fix") {
+    const apply = args.includes("--apply");
+    const actualRemote = git.origin();
+    console.log(`Planned local changes:`);
+    console.log(`  user.name:  ${git.localConfig("user.name")} -> ${config.name}`);
+    console.log(`  user.email: ${git.localConfig("user.email")} -> ${config.email}`);
+    console.log(`  origin:     ${actualRemote} -> ${config.remote}`);
+    if (!apply) {
+      console.log("\nDry run. Re-run with --apply to modify local config and origin.");
+      return;
+    }
+    git.setLocalConfig("user.name", config.name);
+    git.setLocalConfig("user.email", config.email);
+    git.setOrigin(config.remote);
+    console.log("\nApplied local changes. Global config and remote history were not modified.");
+    return;
+  }
+
+  const checkPhase = command === "check" ? requestedPhase as "commit" | "push" : "all";
+  const phaseFindings = new IdentityChecker(git).run(config, checkPhase);
+  if (command === "check" && checkPhase === "push") {
+    phaseFindings.push(...checkHistory(git, config));
+  }
+  const code = printFindings(phaseFindings);
   if (command === "status") printResult(code);
   else if (command === "check") process.exitCode = code;
   else throw new Error(`unknown command: ${command}`);
