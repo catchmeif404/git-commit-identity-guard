@@ -1,5 +1,7 @@
 # gitguard
 
+[한국어 README](README.ko.md)
+
 Repository-aware Git identity guard for machines that use multiple GitHub accounts.
 
 gitguard checks repository-local commit identity, GitHub remote ownership, branch history, SSH configuration, and the account used for remote verification. It is local-first: credentials are never stored, global Git configuration is never changed, and published history is never rewritten.
