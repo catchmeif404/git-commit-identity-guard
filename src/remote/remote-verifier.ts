@@ -3,45 +3,45 @@ import { parseRemote } from "../git/remote-parser.js";
 import type { Finding } from "../types.js";
 
 export async function verifyRemote(remote: string, expectedUser: string): Promise<Finding> {
+  const user = await detectRemoteUser(remote);
+  return user
+    ? user === expectedUser
+      ? { level: "PASS", title: "Remote authentication", detail: `authenticated as ${user}` }
+      : { level: "FAIL", title: "Remote authentication mismatch", detail: `expected ${expectedUser}, authenticated as ${user}` }
+    : { level: "WARN", title: "Remote authentication", detail: "could not identify a GitHub account" };
+}
+
+export async function detectRemoteUser(remote: string): Promise<string | null> {
   const parsed = parseRemote(remote);
-  if (!remote.startsWith("git@")) {
-    return verifyHttpsRemote(parsed.owner, parsed.repository, expectedUser);
-  }
+  if (remote.startsWith("git@")) return detectSshUser(parsed.host);
+  return detectHttpsUser(parsed.owner, parsed.repository);
+}
+
+function detectSshUser(host: string): string | null {
   try {
-    const output = execFileSync("ssh", ["-o", "ConnectTimeout=5", "-T", `git@${parsed.host}`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    return authenticatedFinding(output, expectedUser);
+    return parseSshUser(execFileSync("ssh", ["-o", "ConnectTimeout=5", "-T", `git@${host}`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
   } catch (error) {
     const failure = error as { stdout?: string; stderr?: string };
-    return authenticatedFinding(`${failure.stdout ?? ""}\n${failure.stderr ?? ""}`, expectedUser);
+    return parseSshUser(`${failure.stdout ?? ""}\n${failure.stderr ?? ""}`);
   }
 }
 
-function authenticatedFinding(output: string, expectedUser: string): Finding {
+function parseSshUser(output: string): string | null {
   const match = output.match(/Hi\s+([^!]+)!/i);
-  return match && match[1].trim() === expectedUser
-    ? { level: "PASS", title: "Remote authentication", detail: `authenticated as ${match[1].trim()}` }
-    : match
-      ? { level: "FAIL", title: "Remote authentication mismatch", detail: `expected ${expectedUser}, authenticated as ${match[1].trim()}` }
-    : { level: "FAIL", title: "Remote authentication", detail: "SSH did not identify a GitHub account" };
+  return match?.[1].trim() ?? null;
 }
 
-async function verifyHttpsRemote(owner: string, repository: string, expectedUser: string): Promise<Finding> {
+async function detectHttpsUser(owner: string, repository: string): Promise<string | null> {
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? credentialHelperToken(owner, repository);
-  if (!token) {
-    return { level: "WARN", title: "Remote authentication", detail: "no GitHub credential available for HTTPS verification" };
-  }
+  if (!token) return null;
   try {
     const response = await fetch("https://api.github.com/user", {
       headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, "User-Agent": "gitguard" },
     });
-    if (!response.ok) return { level: "FAIL", title: "Remote authentication", detail: `GitHub API rejected the credential (HTTP ${response.status})` };
+    if (!response.ok) return null;
     const user = (await response.json() as { login?: string }).login;
-    return user === expectedUser
-      ? { level: "PASS", title: "Remote authentication", detail: `authenticated as ${user}` }
-      : { level: "FAIL", title: "Remote authentication mismatch", detail: `expected ${expectedUser}, authenticated as ${user ?? "unknown"}` };
-  } catch (error) {
-    return { level: "WARN", title: "Remote authentication", detail: `GitHub API verification unavailable: ${error instanceof Error ? error.message : String(error)}` };
-  }
+    return user ?? null;
+  } catch { return null; }
 }
 
 function credentialHelperToken(owner: string, repository: string): string | undefined {

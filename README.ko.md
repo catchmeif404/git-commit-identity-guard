@@ -114,6 +114,8 @@ global Git config와 remote history는 수정하지 않습니다.
 gitguard profile init personal
 ```
 
+이름 없이 추가하면 현재 remote 인증 계정을 가능한 경우 자동 감지합니다.
+
 대화형으로 추가:
 
 ```bash

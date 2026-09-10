@@ -11,7 +11,7 @@ import { checkHistory } from "../checks/history-checker.js";
 import { checkBranch } from "../checks/branch-checker.js";
 import { installHooks } from "../hooks/hook-installer.js";
 import { readProfiles, writeProfiles, type Profile } from "../config/profile-store.js";
-import { verifyRemote } from "../remote/remote-verifier.js";
+import { detectRemoteUser, verifyRemote } from "../remote/remote-verifier.js";
 import { printFindings, printResult } from "../output/reporter.js";
 import type { IdentityConfig } from "../types.js";
 
@@ -98,12 +98,17 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
       return;
     }
     if (action === "add") {
-      const name = args[2];
-      if (!name) throw new Error("profile add requires a name");
+      const hasName = args[2] && !args[2].startsWith("--");
+      const name = hasName ? args[2] : await profileNamePrompt();
       if (profiles.has(name) && !args.includes("--force")) {
         throw new Error(`profile already exists: ${name}; use --force to replace it`);
       }
-      const profile = await profileFromArgs(name, args.slice(3));
+      const defaults = detectedProfileDefaults(git);
+      const detectedUser = await detectRemoteUser(git.origin());
+      const profile = await profileFromArgs(name, args.slice(hasName ? 3 : 2), {
+        ...defaults,
+        githubUser: detectedUser ?? defaults.githubUser,
+      }, true);
       profiles.set(name, profile);
       writeProfiles(profilesPath, profiles);
       console.log(`Saved profile '${name}' to ${profilesPath}`);
@@ -216,6 +221,17 @@ async function selectProfile(profiles: Map<string, Profile>): Promise<string> {
   }
 }
 
+async function profileNamePrompt(): Promise<string> {
+  if (!input.isTTY) throw new Error("profile add requires a name outside an interactive terminal");
+  const prompts = createInterface({ input, output });
+  try {
+    const name = (await prompts.question("Profile name [personal]: ")).trim();
+    return name || "personal";
+  } finally {
+    prompts.close();
+  }
+}
+
 async function applyProfile(name: string, profiles: Map<string, Profile>, git: GitClient, configPath: string): Promise<void> {
   const profile = profiles.get(name);
   if (!profile) throw new Error(`profile not found: ${name}`);
@@ -261,7 +277,7 @@ async function profileFromArgs(name: string, args: string[], defaults: Partial<P
   const prompts = input.isTTY ? createInterface({ input, output }) : null;
   try {
     const ask = async (label: string, existing: string | undefined): Promise<string> => {
-      if (existing && !confirmDefaults) return existing;
+      if (existing && (!confirmDefaults || !input.isTTY)) return existing;
       const answer = (await prompts!.question(`${label}${existing ? ` [${existing}]` : ""}: `)).trim();
       return answer || existing || (() => { throw new Error(`${label} is required`); })();
     };

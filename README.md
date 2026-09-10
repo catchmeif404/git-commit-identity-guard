@@ -66,6 +66,7 @@ Profiles are machine-local at `~/.config/gitguard/profiles.yml`.
 
 ```bash
 gitguard profile init personal
+gitguard profile add
 gitguard profile add company
 gitguard profile add company --name "Company" --email "developer@company.example" --github-user company-user --ssh-host-alias github-company
 gitguard profile list
@@ -78,6 +79,10 @@ gitguard profile remove company --force
 `profile use` updates the current repository's local name and email. It preserves HTTPS remotes for
 GitHub CLI/credential-helper users; SSH remotes are switched to the profile's SSH alias. It never
 changes global Git config.
+
+When `profile add` is run without a name, gitguard detects the current remote authentication when
+possible and uses the account as a suggested default. `gh` is optional; SSH and Git credential
+helpers are supported directly.
 
 ## Policy
 
