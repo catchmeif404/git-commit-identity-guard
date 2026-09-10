@@ -22,14 +22,15 @@ author, remote, and SSH checks. `check-history` checks commits after the merge-b
 
 ```bash
 node dist/index.js doctor
-node dist/index.js verify-remote
+node dist/index.js verify-remote --json
 node dist/index.js fix
 node dist/index.js check --phase commit
 node dist/index.js check --phase push
 node dist/index.js check --phase push --json
 ```
 
-`verify-remote` performs an explicit SSH check. `fix` is a dry run unless `--apply` is supplied;
+`verify-remote` performs an explicit SSH or GitHub API check. For HTTPS remotes it reads a token
+from `GITHUB_TOKEN`, `GH_TOKEN`, or the Git credential helper without storing it. `fix` is a dry run unless `--apply` is supplied;
 it only changes repository-local config and origin. Profiles are read from
 `~/.config/gitguard/profiles.yml`. The tool never force-pushes or changes global Git configuration.
 `--json` emits a stable `{ result, findings }` object for CI and coding agents.

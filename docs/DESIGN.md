@@ -26,7 +26,7 @@ checks can be tested without spawning the CLI.
 - `init` creates `.git/gitidentity.yml` from the current local identity and origin.
 - `status` reports local author, remote owner, SSH alias, and inferred IdentityFile.
 - `check` returns exit code 1 for author/email/remote-owner violations.
-- `check-history` inspects commits after the merge-base with `main`.
+- `check-history` inspects commits after the merge-base with the detected default branch.
 - `install-hooks` installs pre-commit and pre-push shims and preserves existing hooks.
 
 ## Phase 2: reliable policy engine
@@ -48,7 +48,8 @@ checks can be tested without spawning the CLI.
 - Store machine-local profiles in `~/.config/gitguard/profiles.yml`. (`profile list/use` implemented.)
 - `profile list` and `profile use <name>` only change repository-local Git config. (`use` also
   switches the origin to the profile's SSH alias.)
-- `verify-remote` performs an explicit network check and labels its result VERIFIED; normal checks
+- `verify-remote` performs an explicit SSH or GitHub API network check and labels its result
+  VERIFIED when the expected account matches; normal checks
   remain local and use INFERRED for SSH identity.
 - `fix` shows a dry run and applies only with `--apply`; it never changes global
   config, credentials, or already-pushed history.

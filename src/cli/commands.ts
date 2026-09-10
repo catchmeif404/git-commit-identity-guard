@@ -91,7 +91,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   const config = readIdentityConfig(configPath);
   if (!config) throw new Error(`no config found; run 'gitguard init' first (${configPath})`);
   if (command === "check-history") {
-    process.exitCode = printFindings(checkHistory(git, config), json);
+    process.exitCode = printFindings(checkHistory(git, config, git.defaultBranch()), json);
     return;
   }
 
@@ -107,7 +107,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   }
 
   if (command === "verify-remote") {
-    process.exitCode = printFindings([verifyRemote(git.origin())], json);
+    process.exitCode = printFindings([await verifyRemote(git.origin(), config.githubUser)], json);
     return;
   }
 
@@ -132,7 +132,7 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
   const checkPhase = command === "check" ? requestedPhase as "commit" | "push" : "all";
   const phaseFindings = new IdentityChecker(git).run(config, checkPhase);
   if (command === "check" && checkPhase === "push") {
-    phaseFindings.push(...checkHistory(git, config));
+    phaseFindings.push(...checkHistory(git, config, git.defaultBranch()));
   }
   const code = printFindings(phaseFindings, json);
   if (command === "status") {

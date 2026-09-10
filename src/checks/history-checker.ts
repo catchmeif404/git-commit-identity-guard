@@ -1,8 +1,8 @@
 import { GitClient } from "../git/git-client.js";
 import type { Finding, IdentityConfig } from "../types.js";
 
-export function checkHistory(git: GitClient, config: IdentityConfig): Finding[] {
-  const base = git.run(["merge-base", "HEAD", "main"]);
+export function checkHistory(git: GitClient, config: IdentityConfig, baseBranch: string): Finding[] {
+  const base = git.run(["merge-base", "HEAD", baseBranch]);
   const commits = git.run(["log", "--format=%H%x09%an%x09%ae", `${base}..HEAD`]);
   if (!commits) return [];
   return commits.split("\n").map((line) => {
