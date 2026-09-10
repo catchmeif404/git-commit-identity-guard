@@ -155,13 +155,6 @@ src/output/                   terminal and JSON reporters
 
 See [docs/DESIGN.md](docs/DESIGN.md) for architecture and the roadmap.
 
-## Limitations
-
-- The YAML reader supports the documented gitguard shape, not arbitrary YAML.
-- HTTPS verification depends on an available GitHub credential.
-- SSH verification is opt-in through `verify-remote`.
-- No external GitHub history is rewritten automatically.
-
 ## License
 
 License terms have not been selected yet.

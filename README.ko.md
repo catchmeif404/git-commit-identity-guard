@@ -222,14 +222,6 @@ src/output/                   터미널·JSON 출력
 
 자세한 구조와 로드맵은 [docs/DESIGN.md](docs/DESIGN.md)를 참고하세요.
 
-## 현재 제한사항
-
-- YAML reader는 gitguard 문서에 정의된 형식만 지원합니다.
-- HTTPS remote 검증은 사용 가능한 GitHub credential이 있어야 합니다.
-- SSH 검증은 `verify-remote`를 실행할 때만 수행합니다.
-- 기본 branch를 Git metadata에서 찾지 못하면 `main` 또는 `master`를 사용합니다.
-- GitHub history를 자동으로 rewrite하지 않습니다.
-
 ## License
 
 아직 라이선스를 선택하지 않았습니다.
