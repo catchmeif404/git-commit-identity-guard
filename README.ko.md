@@ -140,7 +140,9 @@ gitguard profile use personal
 gitguard profile remove company --force
 ```
 
-`profile use`는 현재 저장소의 local Git config와 origin SSH alias만 변경합니다.
+`profile use`는 현재 저장소의 local name과 email을 변경합니다. GitHub CLI/credential helper를
+사용하는 HTTPS remote는 유지하고, SSH remote만 profile의 SSH alias로 변경합니다. global Git
+설정은 변경하지 않습니다.
 
 ## 정책 설정
 

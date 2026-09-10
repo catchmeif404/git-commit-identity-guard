@@ -49,8 +49,8 @@ checks can be tested without spawning the CLI.
 ## Phase 3: profiles and remote verification
 
 - Store machine-local profiles in `~/.config/gitguard/profiles.yml`. (`profile list/use` implemented.)
-- `profile list` and `profile use <name>` only change repository-local Git config. (`use` also
-  switches the origin to the profile's SSH alias.)
+- `profile list` and `profile use <name>` only change repository-local Git config. `use` preserves
+  HTTPS remotes and switches SSH remotes to the profile's SSH alias.
 - `profile init [name]` creates a profile from the current repository identity; `profile add` accepts
   flags or prompts interactively and writes only to the machine-local profiles file.
 - `profile show` prints one profile and `profile remove <name> --force` removes one explicitly.

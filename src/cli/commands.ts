@@ -224,7 +224,7 @@ async function applyProfile(name: string, profiles: Map<string, Profile>, git: G
   const nextConfig: IdentityConfig = { ...profile, remote, policies: { ...profile.policies } };
   git.setLocalConfig("user.name", profile.name);
   git.setLocalConfig("user.email", profile.email);
-  const profileRemote = parsed.owner && profile.sshHostAlias
+  const profileRemote = remote.startsWith("git@") && parsed.owner && profile.sshHostAlias
     ? `git@${profile.sshHostAlias}:${parsed.owner}/${parsed.repository}.git` : remote;
   nextConfig.remote = profileRemote;
   git.setOrigin(profileRemote);

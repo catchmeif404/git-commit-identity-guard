@@ -75,7 +75,9 @@ gitguard profile use personal
 gitguard profile remove company --force
 ```
 
-`profile use` updates the current repository's local name, email, and SSH remote alias. It never changes global Git config.
+`profile use` updates the current repository's local name and email. It preserves HTTPS remotes for
+GitHub CLI/credential-helper users; SSH remotes are switched to the profile's SSH alias. It never
+changes global Git config.
 
 ## Policy
 
