@@ -2,43 +2,147 @@
 
 Repository-aware Git identity guard for machines that use multiple GitHub accounts.
 
-It checks local commit identity, the `origin` owner, SSH host aliases, and branch history before
-commit or push. It stores repository policy in `.git/gitidentity.yml` and never stores credentials.
+gitguard checks repository-local commit identity, GitHub remote ownership, branch history, SSH configuration, and the account used for remote verification. It is local-first: credentials are never stored, global Git configuration is never changed, and published history is never rewritten.
 
-The implementation is split by responsibility under `src/`: `cli`, `commands`, `git`, `config`,
-`checks`, `ssh`, `hooks`, and `output`. See [`docs/DESIGN.md`](docs/DESIGN.md) for the phase plan.
+## Install
+
+The package is not published to npm yet.
+
+```bash
+git clone https://github.com/catchmeif404/git-commit-identity-guard.git
+cd git-commit-identity-guard
+npm install
+npm run build
+npm link
+```
+
+## Quick start
+
+Run these commands inside the repository you want to protect:
+
+```bash
+gitguard init
+gitguard status
+gitguard install-hooks
+```
+
+This creates `.git/gitidentity.yml`, a local-only repository policy. Existing policies are protected; use `gitguard init --force` to regenerate one intentionally.
+
+Git hooks then enforce the checks:
+
+```text
+git commit -> pre-commit -> gitguard check --phase commit
+git push   -> pre-push   -> gitguard check --phase push
+```
+
+A blocking finding returns exit code `1`.
+
+## Commands
+
+```bash
+gitguard status
+gitguard check --phase commit
+gitguard check --phase push
+gitguard check-history
+gitguard doctor
+gitguard verify-remote
+gitguard fix
+gitguard fix --apply
+```
+
+The commit phase checks `user.name` and `user.email`. The push phase also checks the remote owner, SSH configuration, detected current/default branch, and branch history. Direct pushes to the default branch produce a warning by default.
+
+`check-history` uses the detected default branch. Detection checks `origin/HEAD`, local remote metadata, then `main` and `master`.
+
+`verify-remote` performs an explicit authentication check. SSH remotes use `ssh -T`. HTTPS remotes use `GITHUB_TOKEN`, `GH_TOKEN`, or the Git credential helper and then verify the account through GitHub's `/user` API. The credential is used in memory only.
+
+`fix` is a dry run. `fix --apply` changes only repository-local Git config and `origin`.
+
+## Profiles
+
+Profiles are machine-local at `~/.config/gitguard/profiles.yml`.
+
+```bash
+gitguard profile init personal
+gitguard profile add company
+gitguard profile add company --name "Company" --email "developer@company.example" --github-user company-user --ssh-host-alias github-company
+gitguard profile list
+gitguard profile show personal
+gitguard profile use personal
+gitguard profile remove company --force
+```
+
+`profile use` updates the current repository's local name, email, and SSH remote alias. It never changes global Git config.
+
+## Policy
+
+The generated policy uses:
+
+```yaml
+policy:
+  wrong_author: fail
+  wrong_email: fail
+  wrong_remote_owner: fail
+  unexpected_ssh_identity: warn
+  history_mismatch: fail
+  direct_default_branch: warn
+```
+
+Supported levels are `fail`, `warn`, and `require-check`. Warnings do not block; other levels block.
+
+## JSON output
+
+Use `--json` for CI scripts and coding agents:
+
+```bash
+gitguard check --phase push --json
+```
+
+The output has a stable shape:
+
+```json
+{
+  "result": "SAFE",
+  "findings": [
+    {
+      "level": "PASS",
+      "title": "Commit email",
+      "detail": "developer@example.com"
+    }
+  ]
+}
+```
+
+## Development
 
 ```bash
 npm install
 npm run build
-node dist/index.js init
-node dist/index.js status
-node dist/index.js install-hooks
+npm test
 ```
 
-The hooks block mismatched commit authors and remote owners. Existing hooks are preserved as
-`.gitguard-original`. Use `check --phase commit` for author checks and `check --phase push` for
-author, remote, and SSH checks. `check-history` checks commits after the merge-base with `main`.
+Source responsibilities:
 
-```bash
-node dist/index.js doctor
-node dist/index.js verify-remote --json
-node dist/index.js fix
-node dist/index.js profile init personal
-node dist/index.js profile add company --name "Company" --email "dev@company.example" --github-user company-user --ssh-host-alias github-company
-node dist/index.js profile show personal
-node dist/index.js profile use personal
-node dist/index.js profile remove company --force
-node dist/index.js check --phase commit
-node dist/index.js check --phase push
-node dist/index.js check --phase push --json
+```text
+src/index.ts                  CLI entrypoint
+src/cli/commands.ts           command dispatch
+src/git/                      Git commands, remotes, branch detection
+src/config/                   repository and machine-local profile config
+src/checks/                   identity, branch, and history checks
+src/ssh/                      SSH config inspection
+src/hooks/                    Git hook installation
+src/output/                   terminal and JSON reporters
 ```
 
-`check --phase push` detects the repository default branch and warns when you are about to push
-directly to it. Existing identity files are protected; use `init --force` to regenerate one.
+See [docs/DESIGN.md](docs/DESIGN.md) for architecture and the roadmap.
 
-`verify-remote` performs an explicit SSH or GitHub API check. For HTTPS remotes it reads a token
-from `GITHUB_TOKEN`, `GH_TOKEN`, or the Git credential helper without storing it. `fix` is a dry run unless `--apply` is supplied;
-it only changes repository-local config and origin. Profiles are read from
-`~/.config/gitguard/profiles.yml`. The tool never force-pushes or changes global Git configuration.
-`--json` emits a stable `{ result, findings }` object for CI and coding agents.
+## Limitations
+
+- The YAML reader supports the documented gitguard shape, not arbitrary YAML.
+- HTTPS verification depends on an available GitHub credential.
+- SSH verification is opt-in through `verify-remote`.
+- No external GitHub history is rewritten automatically.
+
+## License
+
+License terms have not been selected yet.
