@@ -8,7 +8,13 @@ commit 작성자, GitHub remote owner, SSH 설정, branch history, 실제 remote
 
 ## GitHub에서 설치
 
-아직 npm에 publish하지 않았습니다.
+다음 명령으로 npm에서 전역 설치할 수 있습니다.
+
+```bash
+npm install --global git-commit-identity-guard
+```
+
+로컬 개발이 필요하면 저장소를 clone한 뒤 빌드합니다.
 
 ```bash
 git clone https://github.com/catchmeif404/git-commit-identity-guard.git

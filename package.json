@@ -1,9 +1,10 @@
 {
-  "name": "gitguard",
+  "name": "git-commit-identity-guard",
   "version": "0.1.0",
   "description": "Repository-aware Git commit and push identity guard",
   "type": "module",
   "bin": { "gitguard": "dist/index.js" },
+  "files": ["dist", "README.md", "README.ko.md", "docs/DESIGN.md"],
   "scripts": { "build": "tsc", "start": "node dist/index.js", "test": "npm run build && node --test test/*.test.mjs", "check": "npm test" },
   "engines": { "node": ">=20" },
   "devDependencies": { "@types/node": "^22.0.0", "typescript": "^5.0.0" }

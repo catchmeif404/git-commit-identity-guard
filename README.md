@@ -8,7 +8,13 @@ gitguard checks repository-local commit identity, GitHub remote ownership, branc
 
 ## Install
 
-The package is not published to npm yet.
+Install the package globally from npm:
+
+```bash
+npm install --global git-commit-identity-guard
+```
+
+For local development, clone the repository and build the CLI:
 
 ```bash
 git clone https://github.com/catchmeif404/git-commit-identity-guard.git
