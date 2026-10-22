@@ -6,7 +6,7 @@ import { stdin as input, stdout as output } from "node:process";
 import { dirname, join } from "node:path";
 import { GitClient } from "../git/git-client.js";
 import { parseRemote } from "../git/remote-parser.js";
-import { readIdentityConfig, writeIdentityConfig } from "../config/identity-config.js";
+import { identityConfigPath, readIdentityConfig, writeIdentityConfig } from "../config/identity-config.js";
 import { IdentityChecker } from "../checks/identity-checker.js";
 import { checkHistory } from "../checks/history-checker.js";
 import { checkBranch } from "../checks/branch-checker.js";
@@ -24,8 +24,8 @@ export async function runCli(args: string[], cliPath: string): Promise<void> {
     throw new Error("check requires --phase commit or --phase push");
   }
   const git = new GitClient();
-  const repoRoot = git.repositoryRoot();
-  const configPath = join(repoRoot, git.gitDirectory(), "gitidentity.yml");
+  git.repositoryRoot(); // fail fast outside a work tree
+  const configPath = identityConfigPath(git.commonGitDirectory());
   const profilesPath = join(homedir(), ".config", "gitguard", "profiles.yml");
 
   if (command === "setup") {

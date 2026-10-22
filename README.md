@@ -34,7 +34,7 @@ gitguard status
 gitguard install-hooks
 ```
 
-This creates `.git/gitidentity.yml`, a local-only repository policy. Existing policies are protected; use `gitguard init --force` to regenerate one intentionally.
+This creates `.git/gitidentity.yml`, a local-only repository policy. Existing policies are protected; use `gitguard init --force` to regenerate one intentionally. Linked worktrees created with `git worktree add` share the main repository's policy, so hooks work there without a separate `init`.
 
 Git hooks then enforce the checks:
 
