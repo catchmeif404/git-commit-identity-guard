@@ -36,7 +36,7 @@ gitguard status
 gitguard install-hooks
 ```
 
-`init`은 저장소의 `.git/gitidentity.yml`에 로컬 정책을 생성합니다. 이 파일은 commit되지 않습니다. 기존 파일을 다시 만들려면 명시적으로 다음을 실행합니다.
+`init`은 저장소의 `.git/gitidentity.yml`에 로컬 정책을 생성합니다. 이 파일은 commit되지 않습니다. `git worktree add`로 만든 연결 worktree도 메인 저장소의 정책을 공유하므로 따로 `init`할 필요가 없습니다. 기존 파일을 다시 만들려면 명시적으로 다음을 실행합니다.
 
 ```bash
 gitguard init --force
