@@ -33,8 +33,13 @@ export class GitClient {
     return this.run(["rev-parse", "--show-toplevel"]);
   }
 
-  gitDirectory(): string {
-    return this.run(["rev-parse", "--git-dir"]);
+  /**
+   * Absolute path of the repository's shared git directory. In a linked
+   * worktree this is the main repository's `.git`, not `.git/worktrees/<name>`,
+   * so repository-wide files resolve to the same location from every worktree.
+   */
+  commonGitDirectory(): string {
+    return resolve(this.cwd, this.run(["rev-parse", "--git-common-dir"]));
   }
 
   localConfig(key: string): string {

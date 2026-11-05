@@ -1,5 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { IdentityConfig, Policy } from "../types.js";
+
+export const IDENTITY_CONFIG_FILE_NAME = "gitidentity.yml";
+
+export function identityConfigPath(commonGitDirectory: string): string {
+  return join(commonGitDirectory, IDENTITY_CONFIG_FILE_NAME);
+}
 
 export function readIdentityConfig(path: string): IdentityConfig | null {
   if (!existsSync(path)) return null;
